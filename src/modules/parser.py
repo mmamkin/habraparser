@@ -56,3 +56,9 @@ class MyHTMLParser(HTMLParser):
             for old, new in self._hrefs:
                 tag_text = tag_text.replace(old, new)
         self._writer.write(tag_text)
+
+    def handle_charref(self, name):
+        self._writer.write('&#{};'.format(name))
+
+    def handle_entityref(self, name):
+        self._writer.write('&{};'.format(name))
