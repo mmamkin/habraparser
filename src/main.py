@@ -10,10 +10,21 @@ LOCAL_PORT = 8080
 async def handler(request):
     headers = dict(request.headers)
     headers['Host'] = DEST_HOST
+    if 'Referer' in headers:
+        headers['Referer'] = headers['Referer'].replace(
+            'http://{}:{}'.format(LOCAL_HOST, LOCAL_PORT),
+            'https://{}'.format(DEST_HOST))
     try:
+        dest_url = 'https://{host}{path}'.format(host=DEST_HOST, path=request.rel_url)
+        print('{} {}'.format(request.method, dest_url))
+        body = None
+        if request.can_read_body:
+            body = await request.content.read()
+
         async with client.request(
-                request.method, 'https://{host}{path}'.format(host=DEST_HOST, path=request.rel_url),
-                headers=headers
+                request.method, dest_url,
+                headers=headers,
+                data=body
         ) as r:
             r_headers = dict(r.headers)
             # т.к. результат автоматически распакован из gzip, то заголовки подчищаем
@@ -50,9 +61,9 @@ async def main():
     server = web.Server(handler)
     runner = web.ServerRunner(server)
     await runner.setup()
-    site = web.TCPSite(runner, 'localhost', 8080)
+    site = web.TCPSite(runner, LOCAL_HOST, LOCAL_PORT)
     await site.start()
-    print("======= Serving on http://127.0.0.1:8080/ ======")
+    print("======= Serving on http://{}:{}/ ======".format(LOCAL_HOST, LOCAL_PORT))
     await asyncio.sleep(100 * 3600)
 
 
